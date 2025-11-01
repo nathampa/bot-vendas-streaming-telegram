@@ -214,6 +214,48 @@ class APIClient:
             except httpx.RequestError as e:
                 print(f"Erro de conexão ao criar ticket: {e}")
                 return None
+            
+    async def redeem_gift_card(self, telegram_id: int, codigo: str) -> dict:
+        """
+        Tenta resgatar um gift card usando um código.
+        (Chama POST /api/v1/giftcards/resgatar)
+        Retorna um dicionário indicando sucesso ou falha.
+        """
+
+        data = {
+            "telegram_id": telegram_id,
+            "codigo": codigo
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                print(f"APIClient: A tentar resgatar código {codigo} para {telegram_id}...")
+                response = await client.post(
+                    f"{self.base_url}/giftcards/resgatar",
+                    json=data,
+                    headers=self.bot_headers
+                )
+
+                # Se der erro (ex: 404, 410), levanta uma exceção
+                response.raise_for_status() 
+
+                print(f"APIClient: Código resgatado com sucesso.")
+                # Retorna os dados do resgate (valor, novo_saldo)
+                return {"success": True, "data": response.json()}
+
+            except httpx.HTTPStatusError as e:
+                # A API retornou um erro (ex: 404 Código não encontrado, 410 Já usado)
+                print(f"Erro HTTP ao resgatar código: {e.response.status_code}")
+                try:
+                    error_detail = e.response.json().get("detail", "Erro desconhecido")
+                except:
+                    error_detail = e.response.text
+                return {"success": False, "status_code": e.response.status_code, "detail": error_detail}
+
+            except httpx.RequestError as e:
+                # A API está offline
+                print(f"Erro de conexão ao resgatar código: {e}")
+                return {"success": False, "status_code": 503, "detail": "Serviço indisponível (API offline)."}
 
 # Criamos uma instância única do cliente para ser usada em todo o bot
 api_client = APIClient()

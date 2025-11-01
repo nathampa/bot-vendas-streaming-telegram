@@ -16,3 +16,10 @@ class SupportStates(StatesGroup):
     awaiting_order_selection = State()
     # 2. Bot está à espera que o user escolha o motivo do problema
     awaiting_reason = State()
+
+class GiftCardStates(StatesGroup):
+    """
+    Estados para o fluxo de Resgate de Gift Card.
+    """
+    # Estado: O bot está à espera que o utilizador digite o código
+    waiting_for_code = State()

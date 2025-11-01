@@ -9,7 +9,7 @@ from aiogram.enums import ParseMode
 from core.config import settings
 
 # Importa os nossos manipuladores de comandos
-from handlers import common, wallet, catalog, purchase, support
+from handlers import common, wallet, catalog, purchase, support, giftcard
 
 async def main():
     # 1. Cria o objeto Bot com o nosso token
@@ -28,6 +28,7 @@ async def main():
     dp.include_router(catalog.router)
     dp.include_router(purchase.router)
     dp.include_router(support.router)
+    dp.include_router(giftcard.router)
 
     # 4. Limpa webhooks pendentes (boa prática)
     await bot.delete_webhook(drop_pending_updates=True)
