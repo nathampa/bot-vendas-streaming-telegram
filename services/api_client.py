@@ -9,7 +9,7 @@ class APIClient:
     """
     def __init__(self):
         self.base_url = settings.API_BASE_URL
-        
+
         # Prepara os cabeçalhos que serão usados em todos os pedidos do bot
         self.bot_headers = {
             "X-API-Key": settings.API_KEY, # O nosso "cadeado" de segurança
@@ -21,7 +21,6 @@ class APIClient:
         Busca a lista de produtos ativos na API.
         (Chama GET /api/v1/produtos/)
         """
-        # 'async with' garante que o cliente é fechado corretamente
         async with httpx.AsyncClient() as client:
             try:
                 print("APIClient: A tentar buscar /produtos/")
@@ -29,23 +28,49 @@ class APIClient:
                     f"{self.base_url}/produtos/",
                     headers=self.bot_headers
                 )
-                
-                # Levanta um erro se a API retornar 4xx ou 5xx
                 response.raise_for_status() 
-                
                 print(f"APIClient: /produtos/ retornado com sucesso ({response.status_code})")
-                return response.json() # Retorna a lista de produtos
-            
+                return response.json()
+
             except httpx.HTTPStatusError as e:
-                # Ex: 401 (API Key errada), 404, 500 (API quebrou)
                 print(f"Erro HTTP ao buscar produtos: {e.response.status_code} - {e.response.text}")
                 return None
             except httpx.RequestError as e:
-                # Ex: A API (Uvicorn) não está a correr
                 print(f"Erro de conexão ao buscar produtos: {e}")
                 return None
 
-    # (Iremos adicionar mais métodos aqui: criar_recarga, fazer_compra, etc.)
+    # --- MÉTODO QUE FALTAVA ---
+    async def register_user(self, telegram_id: int, nome_completo: str) -> dict | None:
+        """
+        Regista (ou encontra) um usuário na nossa API.
+        (Chama POST /api/v1/usuarios/register)
+        """
+
+        data = {
+            "telegram_id": telegram_id,
+            "nome_completo": nome_completo
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                print(f"APIClient: A tentar registar usuário {telegram_id}...")
+                response = await client.post(
+                    f"{self.base_url}/usuarios/register", # O nosso novo endpoint
+                    json=data,
+                    headers=self.bot_headers
+                )
+
+                response.raise_for_status() 
+
+                print(f"APIClient: Usuário {telegram_id} registado/encontrado com sucesso.")
+                return response.json() # Retorna os dados do usuário (incluindo saldo)
+
+            except httpx.HTTPStatusError as e:
+                print(f"Erro HTTP ao registar usuário: {e.response.status_code} - {e.response.text}")
+                return None
+            except httpx.RequestError as e:
+                print(f"Erro de conexão ao registar usuário: {e}")
+                return None
 
 # Criamos uma instância única do cliente para ser usada em todo o bot
 api_client = APIClient()
