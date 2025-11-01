@@ -8,4 +8,11 @@ class WalletStates(StatesGroup):
     # que quer recarregar.
     waiting_for_recharge_amount = State()
 
-# (Aqui adicionaremos mais estados no futuro, ex: SupportStates)
+class SupportStates(StatesGroup):
+    """
+    Estados para o fluxo de Suporte.
+    """
+    # 1. Bot está à espera que o user escolha um pedido da lista
+    awaiting_order_selection = State()
+    # 2. Bot está à espera que o user escolha o motivo do problema
+    awaiting_reason = State()

@@ -155,6 +155,65 @@ class APIClient:
                 # A API está offline
                 print(f"Erro de conexão ao fazer compra: {e}")
                 return {"success": False, "status_code": 503, "detail": "Serviço indisponível (API offline)."}
+    
+    async def get_my_orders(self, telegram_id: int) -> list | None:
+        """
+        Busca o histórico de 5 pedidos do usuário na API.
+        (Chama GET /api/v1/usuarios/meus-pedidos)
+        """
+        async with httpx.AsyncClient() as client:
+            try:
+                print(f"APIClient: A buscar pedidos para {telegram_id}...")
+                response = await client.get(
+                    f"{self.base_url}/usuarios/meus-pedidos",
+                    headers=self.bot_headers,
+                    params={"telegram_id": telegram_id} # Envia como ?telegram_id=...
+                )
+                response.raise_for_status()
+                print("APIClient: Pedidos encontrados.")
+                return response.json()
+
+            except httpx.HTTPStatusError as e:
+                print(f"Erro HTTP ao buscar pedidos: {e.response.status_code} - {e.response.text}")
+                return None
+            except httpx.RequestError as e:
+                print(f"Erro de conexão ao buscar pedidos: {e}")
+                return None
+    
+    async def create_ticket(
+    self, 
+    telegram_id: int, 
+    pedido_id: str, 
+    motivo: str
+) -> dict | None:
+        """
+        Cria um novo ticket de suporte.
+        (Chama POST /api/v1/tickets/)
+        """
+        data = {
+            "telegram_id": telegram_id,
+            "pedido_id": pedido_id,
+            "motivo": motivo
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                print(f"APIClient: A tentar criar ticket para pedido {pedido_id}...")
+                response = await client.post(
+                    f"{self.base_url}/tickets/",
+                    json=data,
+                    headers=self.bot_headers
+                )
+                response.raise_for_status()
+                print("APIClient: Ticket criado com sucesso.")
+                return response.json()
+
+            except httpx.HTTPStatusError as e:
+                print(f"Erro HTTP ao criar ticket: {e.response.status_code} - {e.response.text}")
+                return e.response.json() # Retorna o erro (ex: 409 "Já existe")
+            except httpx.RequestError as e:
+                print(f"Erro de conexão ao criar ticket: {e}")
+                return None
 
 # Criamos uma instância única do cliente para ser usada em todo o bot
 api_client = APIClient()
