@@ -82,8 +82,6 @@ class APIClient:
         (Chama POST /api/v1/recargas/)
         """
         
-        # A nossa API espera um 'float' ou 'Decimal', 
-        # garantimos que é float para o JSON
         data = {
             "telegram_id": telegram_id,
             "nome_completo": nome_completo,
@@ -102,7 +100,7 @@ class APIClient:
                 response.raise_for_status() 
                 
                 print(f"APIClient: Recarga criada com sucesso.")
-                return response.json() # Retorna os dados do PIX (copia_e_cola, qrcode)
+                return response.json() # Retorna os dados do PIX
             
             except httpx.HTTPStatusError as e:
                 print(f"Erro HTTP ao criar recarga: {e.response.status_code} - {e.response.text}")
@@ -110,6 +108,53 @@ class APIClient:
             except httpx.RequestError as e:
                 print(f"Erro de conexão ao criar recarga: {e}")
                 return None
+
+    async def make_purchase(
+        self, 
+        telegram_id: int, 
+        produto_id: str
+    ) -> dict:
+        """
+        Tenta executar uma compra usando o saldo da carteira.
+        (Chama POST /api/v1/compras/)
+        Retorna um dicionário indicando sucesso ou falha.
+        """
+        
+        data = {
+            "telegram_id": telegram_id,
+            "produto_id": produto_id
+        }
+        
+        async with httpx.AsyncClient() as client:
+            try:
+                print(f"APIClient: A tentar compra do produto {produto_id} para {telegram_id}...")
+                response = await client.post(
+                    f"{self.base_url}/compras/",
+                    json=data,
+                    headers=self.bot_headers
+                )
+                
+                # Se der erro (ex: 402 Saldo, 404 Stock), levanta uma exceção
+                response.raise_for_status() 
+                
+                print(f"APIClient: Compra bem-sucedida.")
+                # Retorna os dados da compra (login, senha, novo_saldo, etc.)
+                return {"success": True, "data": response.json()}
+            
+            except httpx.HTTPStatusError as e:
+                # A API retornou um erro (ex: 402 Saldo Insuficiente)
+                print(f"Erro HTTP ao fazer compra: {e.response.status_code}")
+                # Tenta extrair a mensagem de 'detail' da nossa API
+                try:
+                    error_detail = e.response.json().get("detail", "Erro desconhecido")
+                except:
+                    error_detail = e.response.text
+                return {"success": False, "status_code": e.response.status_code, "detail": error_detail}
+            
+            except httpx.RequestError as e:
+                # A API está offline
+                print(f"Erro de conexão ao fazer compra: {e}")
+                return {"success": False, "status_code": 503, "detail": "Serviço indisponível (API offline)."}
 
 # Criamos uma instância única do cliente para ser usada em todo o bot
 api_client = APIClient()

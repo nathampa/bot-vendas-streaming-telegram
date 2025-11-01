@@ -9,7 +9,7 @@ from aiogram.enums import ParseMode
 from core.config import settings
 
 # Importa os nossos manipuladores de comandos
-from handlers import common, wallet
+from handlers import common, wallet, catalog, purchase
 
 async def main():
     # 1. Cria o objeto Bot com o nosso token
@@ -25,6 +25,8 @@ async def main():
     # (Por agora, apenas os comandos comuns como /start)
     dp.include_router(common.router)
     dp.include_router(wallet.router)
+    dp.include_router(catalog.router)
+    dp.include_router(purchase.router)
     
     # (No futuro, adicionaremos mais)
     # dp.include_router(wallet.router)
