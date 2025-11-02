@@ -256,6 +256,40 @@ class APIClient:
                 # A API está offline
                 print(f"Erro de conexão ao resgatar código: {e}")
                 return {"success": False, "status_code": 503, "detail": "Serviço indisponível (API offline)."}
+            
+    async def create_suggestion(self, telegram_id: int, nome_streaming: str) -> dict | None:
+        """
+        Envia uma nova sugestão de streaming para a API.
+        (Chama POST /api/v1/sugestoes/)
+        """
+
+        data = {
+            "telegram_id": telegram_id,
+            "nome_streaming": nome_streaming
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                print(f"APIClient: A enviar sugestão '{nome_streaming}' para {telegram_id}...")
+                response = await client.post(
+                    f"{self.base_url}/sugestoes/",
+                    json=data,
+                    headers=self.bot_headers
+                )
+
+                response.raise_for_status() 
+
+                print(f"APIClient: Sugestão enviada com sucesso.")
+                return response.json() # Retorna os dados da sugestão
+
+            except httpx.HTTPStatusError as e:
+                # Ex: 404 (Usuário não encontrado), 400 (Nome muito curto)
+                print(f"Erro HTTP ao enviar sugestão: {e.response.status_code} - {e.response.text}")
+                return e.response.json()
+            except httpx.RequestError as e:
+                # A API está offline
+                print(f"Erro de conexão ao enviar sugestão: {e}")
+                return None
 
 # Criamos uma instância única do cliente para ser usada em todo o bot
 api_client = APIClient()

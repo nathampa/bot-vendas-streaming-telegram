@@ -23,3 +23,10 @@ class GiftCardStates(StatesGroup):
     """
     # Estado: O bot está à espera que o utilizador digite o código
     waiting_for_code = State()
+
+class SuggestionStates(StatesGroup):
+    """
+    Estados para o fluxo de Sugestões.
+    """
+    # Estado: O bot está à espera que o utilizador digite o nome
+    awaiting_suggestion = State()
