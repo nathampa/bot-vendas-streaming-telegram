@@ -30,3 +30,12 @@ class SuggestionStates(StatesGroup):
     """
     # Estado: O bot está à espera que o utilizador digite o nome
     awaiting_suggestion = State()
+
+class PurchaseStates(StatesGroup):
+    """
+    Estados para o fluxo de compra que requer e-mail.
+    """
+    # 1. Aguardando o usuário digitar o e-mail
+    awaiting_email = State()
+    # 2. Aguardando o usuário confirmar o e-mail (Sim/Não)
+    awaiting_email_confirmation = State()

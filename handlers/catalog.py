@@ -37,10 +37,13 @@ async def handle_show_products(message: types.Message):
         )
 
         # Cria o botão "Comprar" para este produto específico
+        requer_email = produto['requer_email_cliente']
+
         teclado = get_buy_product_keyboard(
             produto_id=produto['id'],
             produto_nome=produto['nome'],
-            preco=produto['preco']
+            preco=produto['preco'],
+            requer_email=requer_email
         )
 
         await message.answer(texto_produto, reply_markup=teclado)

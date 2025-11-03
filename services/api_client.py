@@ -112,7 +112,8 @@ class APIClient:
     async def make_purchase(
         self, 
         telegram_id: int, 
-        produto_id: str
+        produto_id: str,
+        email_cliente: str | None = None
     ) -> dict:
         """
         Tenta executar uma compra usando o saldo da carteira.
@@ -124,6 +125,8 @@ class APIClient:
             "telegram_id": telegram_id,
             "produto_id": produto_id
         }
+        if email_cliente:
+            data["email_cliente"] = email_cliente
         
         async with httpx.AsyncClient() as client:
             try:
