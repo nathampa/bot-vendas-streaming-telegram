@@ -40,7 +40,7 @@ async def handle_buy_callback(query: types.CallbackQuery):
                 f"Aqui estão as suas credenciais:\n"
                 f"Login: `{dados_compra.get('login')}`\n"
                 f"Senha: `{dados_compra.get('senha')}`\n\n"
-                f"⚠️ *Por favor, não altere a senha! Apenas 1 utilizador por conta.*\n\n"
+                f"⚠️ *Por favor, não altere a senha! Apenas 1 utilizador por conta. Se alterar a senha, poderá perder o acesso à conta.*\n\n"
                 f"O seu novo saldo é: **R$ {dados_compra.get('novo_saldo')}**"
             )
             await query.message.answer(texto_sucesso)
