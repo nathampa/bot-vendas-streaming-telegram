@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 
 from services.api_client import api_client
 from states.user_states import SuggestionStates # O nosso FSM
-from keyboards.reply_keyboards import get_main_menu_keyboard # O menu principal
+from keyboards.reply_keyboards import get_main_menu_keyboard, get_cancel_keyboard
 
 router = Router()
 
@@ -20,7 +20,8 @@ async def handle_suggest_start(message: types.Message, state: FSMContext):
     await message.answer(
         "Qual serviço de streaming você gostaria que "
         "o **Ferreira Streamings** adicionasse à loja?\n\n"
-        "(Digite /cancelar para sair)"
+        "(Use /cancelar ou o botão abaixo para sair)",
+        reply_markup=get_cancel_keyboard()
     )
 
     # Define o próximo estado do utilizador
@@ -29,13 +30,14 @@ async def handle_suggest_start(message: types.Message, state: FSMContext):
 # --- 2. Manipulador para /cancelar (a meio do fluxo) ---
 
 @router.message(Command("cancelar"), StateFilter(SuggestionStates.awaiting_suggestion))
+@router.message(F.text.casefold() == "cancelar", StateFilter(SuggestionStates.awaiting_suggestion)) # <-- MUDANÇA
 async def handle_cancel_suggestion(message: types.Message, state: FSMContext):
     """
     Cancela o fluxo de sugestão.
     """
     await state.clear()
     await message.answer(
-        "Ação cancelada.",
+        "Ação cancelada. A voltar ao menu principal.",
         reply_markup=get_main_menu_keyboard()
     )
 

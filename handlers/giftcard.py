@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 
 from services.api_client import api_client
 from states.user_states import GiftCardStates # O nosso FSM
-from keyboards.reply_keyboards import get_main_menu_keyboard # O menu principal
+from keyboards.reply_keyboards import get_main_menu_keyboard, get_cancel_keyboard
 
 router = Router()
 
@@ -19,7 +19,9 @@ async def handle_redeem_start(message: types.Message, state: FSMContext):
     await state.clear() # Limpa qualquer estado antigo
 
     await message.answer(
-        "Por favor, digite o seu código de Gift Card:"
+        "Por favor, digite o seu código de Gift Card:\n\n"
+        "Use /cancelar ou o botão abaixo para voltar.",
+        reply_markup=get_cancel_keyboard()
     )
 
     # Define o próximo estado do utilizador
@@ -67,3 +69,15 @@ async def handle_code_received(message: types.Message, state: FSMContext):
             f"Motivo: {detalhe}",
             reply_markup=get_main_menu_keyboard()
         )
+
+@router.message(Command("cancelar"), StateFilter(GiftCardStates.waiting_for_code))
+@router.message(F.text.casefold() == "cancelar", StateFilter(GiftCardStates.waiting_for_code))
+async def handle_cancel_giftcard(message: types.Message, state: FSMContext):
+    """
+    Cancela o fluxo de resgate de gift card.
+    """
+    await state.clear()
+    await message.answer(
+        "Operação cancelada. A voltar ao menu principal.",
+        reply_markup=get_main_menu_keyboard()
+    )

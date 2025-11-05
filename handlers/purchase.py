@@ -1,12 +1,12 @@
 import re
 from aiogram import Router, types, F
-from aiogram.filters import StateFilter
+from aiogram.filters import StateFilter, Command
 from aiogram.fsm.context import FSMContext
 
 from services.api_client import api_client
 from states.user_states import PurchaseStates  # <-- Importa o novo FSM
 from keyboards.inline_keyboards import get_email_confirmation_keyboard # <-- Importa novo teclado
-from keyboards.reply_keyboards import get_main_menu_keyboard
+from keyboards.reply_keyboards import get_main_menu_keyboard, get_cancel_keyboard
 
 router = Router()
 
@@ -78,7 +78,9 @@ async def handle_buy_email_start(query: types.CallbackQuery, state: FSMContext):
     # Pergunta pelo e-mail
     await query.message.answer(
         "Para este produto, precisamos do seu e-mail para onde o convite será enviado.\n\n"
-        "Por favor, **digite o seu endereço de e-mail**:"
+        "Por favor, **digite o seu endereço de e-mail**:\n\n"
+        "Use /cancelar ou o botão abaixo para voltar.",
+        reply_markup=get_cancel_keyboard()
     )
     
     # Define o próximo estado
@@ -96,7 +98,8 @@ async def handle_email_received(message: types.Message, state: FSMContext):
     if not re.match(EMAIL_REGEX, email):
         await message.answer(
             "❌ E-mail inválido.\n"
-            "Por favor, digite um e-mail válido (ex: `exemplo@gmail.com`):"
+            "Por favor, digite um e-mail válido (ex: `exemplo@gmail.com`):",
+            reply_markup=get_cancel_keyboard()
         )
         return # Continua no mesmo estado 'awaiting_email'
 
@@ -119,7 +122,8 @@ async def handle_email_retry(query: types.CallbackQuery, state: FSMContext):
     PASSO 2.5: O usuário clicou em "Não, digitar novamente".
     """
     await query.answer()
-    await query.message.edit_text("Ok. Por favor, digite o seu e-mail novamente:")
+    await query.message.edit_text("Ok. Por favor, digite o seu e-mail novamente:",
+                                  reply_markup=get_cancel_keyboard())
     
     # Volta para o estado de esperar o e-mail
     await state.set_state(PurchaseStates.awaiting_email)
@@ -169,11 +173,14 @@ async def handle_email_confirm(query: types.CallbackQuery, state: FSMContext):
         await state.clear() # Limpa o FSM
 
 
-@router.callback_query(F.data == "buy_email:cancel", StateFilter(PurchaseStates))
-async def handle_cancel_purchase(query: types.CallbackQuery, state: FSMContext):
+@router.message(Command("cancelar"), StateFilter(PurchaseStates))
+@router.message(F.text.casefold() == "cancelar", StateFilter(PurchaseStates))
+async def handle_cancel_purchase_command(message: types.Message, state: FSMContext):
     """
-    Cancela o fluxo de compra de e-mail a qualquer momento.
+    Cancela o fluxo de compra de e-mail (via comando /cancelar ou texto).
     """
     await state.clear()
-    await query.answer("Compra cancelada.")
-    await query.message.edit_text("Compra cancelada.")
+    await message.answer(
+        "Compra cancelada. A voltar ao menu principal.",
+        reply_markup=get_main_menu_keyboard()
+    )

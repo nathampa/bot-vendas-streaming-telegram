@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 
 from services.api_client import api_client
 from states.user_states import WalletStates # O nosso FSM
-from keyboards.reply_keyboards import get_main_menu_keyboard # O menu principal
+from keyboards.reply_keyboards import get_main_menu_keyboard, get_cancel_keyboard
 
 router = Router()
 
@@ -19,15 +19,45 @@ async def handle_wallet_menu(message: types.Message, state: FSMContext):
     """
     await state.clear() # Limpa qualquer estado antigo
 
-    # TODO: No futuro, este comando deve primeiro buscar o saldo atual na API
+    await message.answer("A consultar a sua carteira... ⏳")
 
-    await message.answer(
-        "Quanto gostaria de adicionar à sua carteira?\n\n"
-        "Por favor, digite um valor (ex: `20.00` ou `20`)."
-    )
+    try:
+        # 1. Busca os dados do usuário na API (que inclui o saldo)
+        usuario_api = await api_client.register_user(
+            telegram_id=message.from_user.id,
+            nome_completo=message.from_user.full_name
+        )
+        
+        if usuario_api is None:
+            raise Exception("API offline")
 
-    # Define o próximo estado do utilizador
-    await state.set_state(WalletStates.waiting_for_recharge_amount)
+        # 2. Se correu bem, extrai o saldo
+        saldo = usuario_api.get("saldo_carteira", "0.00")
+
+        texto_saldo = (
+            f"O seu saldo atual é: **R$ {saldo}**\n\n"
+            "Quanto gostaria de adicionar à sua carteira?\n\n"
+            "Por favor, digite um valor (ex: `20.00` ou `20`).\n\n"
+            "Use /cancelar ou o botão abaixo para voltar."
+        )
+
+        await message.answer(
+            texto_saldo,
+            reply_markup=get_cancel_keyboard() # Mostra o teclado de "Cancelar"
+        )
+        
+        # Define o próximo estado do utilizador
+        await state.set_state(WalletStates.waiting_for_recharge_amount)
+
+    except Exception as e:
+        # 3. Se falhou (API offline ou outro erro)
+        print(f"Erro no /carteira ao tentar buscar saldo: {e}")
+        await message.answer(
+            "❌ Ups! Estou com dificuldades para me ligar aos nossos servidores agora.\n"
+            "Por favor, tente novamente mais tarde.",
+            reply_markup=get_main_menu_keyboard()
+        )
+        await state.clear() # Limpa o estado em caso de erro
 
 # --- 2. Manipulador que recebe o valor (quando no estado correto) ---
 

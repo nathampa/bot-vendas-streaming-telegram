@@ -24,3 +24,15 @@ def get_main_menu_keyboard() -> ReplyKeyboardMarkup:
         resize_keyboard=True, # Faz o teclado adaptar-se ao ecrã
         input_field_placeholder="Use o menu para navegar..."
     )
+
+def get_cancel_keyboard() -> ReplyKeyboardMarkup:
+    """
+    Cria e retorna um teclado simples com um botão "Cancelar".
+    """
+    builder = ReplyKeyboardBuilder()
+    builder.row(KeyboardButton(text="Cancelar"))
+    
+    return builder.as_markup(
+        resize_keyboard=True,
+        input_field_placeholder="Digite uma opção ou cancele a operação..."
+    )
