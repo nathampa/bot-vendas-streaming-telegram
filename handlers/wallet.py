@@ -68,7 +68,7 @@ async def handle_cancel_wallet(message: types.Message, state: FSMContext):
     """
     await state.clear()
     await message.answer(
-        "Operação cancelada. A voltar ao menu principal.",
+        "Operação cancelada. Voltando ao menu principal.",
         reply_markup=get_main_menu_keyboard()
     )
 

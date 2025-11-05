@@ -25,15 +25,28 @@ async def handle_support_start(message: types.Message, state: FSMContext):
         await message.answer("❌ Não consegui buscar o seu histórico de pedidos. A API pode estar offline.")
         return
 
-    if not pedidos:
-        await message.answer("😕 Não encontrei pedidos recentes na sua conta.")
-        return
+    teclado_suporte = get_support_orders_keyboard(pedidos)
 
-    # Encontrámos pedidos. Mostra-os como botões inline.
-    await message.answer(
-        "Selecione o pedido com o qual você está a ter problemas:",
-        reply_markup=get_support_orders_keyboard(pedidos)
-    )
+    if not pedidos:
+        # Se não há pedidos, envia uma mensagem explicando
+        # e mostra o teclado de admin/cancelar
+        texto_sem_pedidos = (
+            "😕 Não encontrei pedidos recentes na sua conta.\n\n"
+            "Se o seu problema for relacionado a um pedido antigo ou "
+            "outro assunto (dúvidas, recargas, etc.), "
+            "**fale diretamente com o administrador:**"
+        )
+        await message.answer(
+            texto_sem_pedidos,
+            reply_markup=teclado_suporte
+        )
+        
+    else:
+        # Se encontrou pedidos, mostra a lista
+        await message.answer(
+            "Selecione o pedido com o qual você está tendo problemas:",
+            reply_markup=teclado_suporte
+        )
 
     # Define o estado
     await state.set_state(SupportStates.awaiting_order_selection)
@@ -59,7 +72,7 @@ async def handle_order_selection(query: types.CallbackQuery, state: FSMContext):
     pedido_id = query.data.split(":")[1]
 
     # Guarda o pedido_id no estado (memória)
-    await state.update_data(pedido_id=pedido_id) # <-- Isto está correto
+    await state.update_data(pedido_id=pedido_id)
 
     # Altera a mensagem original (edit_text)
     await query.message.edit_text(
@@ -102,22 +115,33 @@ async def handle_reason_selection(query: types.CallbackQuery, state: FSMContext)
         motivo=motivo
     )
 
-    # ... (o resto da lógica de 'if resultado...' continua igual) ...
+    texto_resposta = ""
+    
     if resultado and resultado.get("id"):
         # Sucesso
-        await query.message.edit_text(
+        texto_resposta = (
             "✅ **Ticket aberto com sucesso!**\n\n"
-            "A nossa equipa de suporte irá analisar o seu caso."
-            " A conta problemática já foi bloqueada."
+            "A nossa equipe de suporte irá analisar o seu caso."
+            " A conta problemática já foi bloqueada.\n\n"
+            "Se a resolução automática falhar ou demorar, "
+            "você pode [falar com o admin](https://t.me/nathampa) a qualquer momento."
         )
     elif resultado and resultado.get("detail"):
         # Falha (ex: 409 Ticket já existe)
-        await query.message.edit_text(
+        texto_resposta = (
             f"❌ **Não foi possível abrir o ticket.**\n"
-            f"Motivo: {resultado.get('detail')}"
+            f"Motivo: {resultado.get('detail')}\n\n"
+            "Se precisar de ajuda, [fale com o admin](https://t.me/nathampa)."
         )
     else:
         # Falha (API offline)
-        await query.message.edit_text("❌ Erro de comunicação. Tente novamente mais tarde.")
+        texto_resposta = (
+            "❌ Erro de comunicação. Tente novamente mais tarde ou "
+            "[fale com o admin](https://t.me/nathampa)."
+        )
 
+    await query.message.edit_text(
+        texto_resposta,
+        disable_web_page_preview=True # Para não mostrar preview do link do Telegram
+    )
     await state.clear()

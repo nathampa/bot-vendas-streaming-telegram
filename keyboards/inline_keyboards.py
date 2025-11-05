@@ -46,14 +46,13 @@ def get_support_orders_keyboard(pedidos: list) -> InlineKeyboardMarkup:
         data = datetime.datetime.fromisoformat(pedido['data_compra']).strftime('%d/%m/%Y %H:%M')
 
         builder.row(
-            InlineKeyboardButton(
-                text=f"Pedido: {produto_nome} ({data})",
-                # O callback data identifica a ação E o ID do pedido
-                callback_data=f"support_order:{pedido_id}"
-            )
+        InlineKeyboardButton(text="« Cancelar", callback_data="cancel_support"),
+        InlineKeyboardButton(
+            text="💬 Falar com Admin", 
+            url="https://t.me/nathampa"
         )
-
-    builder.row(InlineKeyboardButton(text="« Cancelar", callback_data="cancel_support"))
+    )
+        
     return builder.as_markup()
 
 def get_support_reason_keyboard() -> InlineKeyboardMarkup:
