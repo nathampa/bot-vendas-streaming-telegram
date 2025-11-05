@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 
 from services.api_client import api_client
 from states.user_states import PurchaseStates  # <-- Importa o novo FSM
-from keyboards.inline_keyboards import get_email_confirmation_keyboard, get_purchase_confirmation_keyboard
+from keyboards.inline_keyboards import get_email_confirmation_keyboard, get_purchase_confirmation_keyboard, get_buy_product_keyboard
 from keyboards.reply_keyboards import get_main_menu_keyboard, get_cancel_keyboard
 
 router = Router()
@@ -70,8 +70,9 @@ async def handle_buy_auto_callback(query: types.CallbackQuery, state: FSMContext
         # Chama a API (sem e-mail)
         resultado = await api_client.make_purchase(telegram_id, produto_id)
         
-        # Edita a mensagem de "processando" para o resultado final
-        
+        # Deleta a mensagem "processando"
+        await query.message.delete()
+
         if resultado.get("success"):
             # SUCESSO!
             dados_compra = resultado.get("data", {})
@@ -84,7 +85,8 @@ async def handle_buy_auto_callback(query: types.CallbackQuery, state: FSMContext
                 f"⚠️ *Por favor, não altere a senha! Apenas 1 utilizador por conta.*\n\n"
                 f"O seu novo saldo é: **R$ {dados_compra.get('novo_saldo')}**"
             )
-            await query.message.edit_text(texto_sucesso)
+            # 3. Envia o sucesso como NOVA MENSAGEM
+            await query.message.answer(texto_sucesso)
         else:
             # FALHA! (Saldo, Estoque, etc.)
             status_code = resultado.get("status_code")
@@ -93,15 +95,15 @@ async def handle_buy_auto_callback(query: types.CallbackQuery, state: FSMContext
             if status_code == 402:
                 texto_falha += "\n\nPor favor, vá a '💳 Carteira' para adicionar mais saldo."
             
-            await query.message.edit_text(texto_falha)
+            # 3. Envia a falha como NOVA MENSAGEM
+            await query.message.answer(texto_falha)
+            # (Opcional) Reverte a mensagem original, se desejar
+            # await handle_cancel_purchase(query) # Chama a função de cancelar
 
     except Exception as e:
-        # Erro ao editar a mensagem
+        await query.message.delete()
         print(f"Erro inesperado no fluxo de compra AUTO: {e}")
-        try:
-            await query.message.edit_text("❌ Ocorreu um erro crítico. Tente novamente.")
-        except:
-            pass # Se a edição falhar, não há o que fazer
+        await query.message.answer("❌ Ocorreu um erro crítico. Tente novamente.")
 
 # --- FLUXO PASSO 2 (Opção B): Compra Manual (E-mail) ---
 
@@ -130,14 +132,56 @@ async def handle_buy_email_start(query: types.CallbackQuery, state: FSMContext):
 
 
 # --- FLUXO PASSO 3: Cancelar Compra ---
-@router.callback_query(F.data == "cancel_purchase")
+@router.callback_query(F.data.startswith("cancel_purchase:"))
 async def handle_cancel_purchase(query: types.CallbackQuery, state: FSMContext):
     """
-    Cancela o fluxo de compra (clicou em "Cancelar / Voltar").
+    Cancela o fluxo de compra (clicou em "Cancelar / Voltar")
+    e REVERTE a mensagem para a descrição original.
     """
     await state.clear()
-    await query.answer()
-    await query.message.edit_text("Compra cancelada.")
+    await query.answer("Voltando...")
+    
+    try:
+        produto_id_cancelado = query.data.split(":")[1]
+        
+        # 1. Busca TODOS os produtos da API
+        # (É a única forma de obter a descrição sem um endpoint de "produto único")
+        produtos = await api_client.get_produtos()
+        if not produtos:
+            raise Exception("API não retornou produtos")
+            
+        # 2. Encontra o produto específico que foi cancelado
+        produto_original = None
+        for p in produtos:
+            if p['id'] == produto_id_cancelado:
+                produto_original = p
+                break
+        
+        if not produto_original:
+            raise Exception("Produto não encontrado na lista da API")
+            
+        # 3. Reconstrói a mensagem original (igual ao catalog.py)
+        texto_produto = (
+            f"📺 **{produto_original['nome']}**\n"
+            f"📝 {produto_original['descricao']}\n\n"
+            f"💰 **Preço: R$ {produto_original['preco']}**"
+        )
+        
+        # 4. Reconstrói o teclado original
+        teclado = get_buy_product_keyboard(
+            produto_id=produto_original['id'],
+            produto_nome=produto_original['nome'],
+            preco=produto_original['preco'],
+            requer_email=produto_original['requer_email_cliente']
+        )
+        
+        # 5. Edita a mensagem de volta ao original
+        await query.message.edit_text(texto_produto, reply_markup=teclado)
+
+    except Exception as e:
+        print(f"Erro ao reverter cancelamento de compra: {e}")
+        # Se tudo falhar, apenas edita a mensagem
+        await query.message.edit_text("Compra cancelada.")
 
 @router.message(StateFilter(PurchaseStates.awaiting_email), F.text)
 async def handle_email_received(message: types.Message, state: FSMContext):

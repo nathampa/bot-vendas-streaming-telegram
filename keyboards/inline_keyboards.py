@@ -47,7 +47,7 @@ def get_purchase_confirmation_keyboard(
         InlineKeyboardButton(text="✅ Confirmar Compra", callback_data=callback_data)
     )
     builder.row(
-        InlineKeyboardButton(text="« Cancelar / Voltar", callback_data="cancel_purchase")
+        InlineKeyboardButton(text="« Cancelar / Voltar", callback_data=f"cancel_purchase:{produto_id}")
     )
     return builder.as_markup()
 
