@@ -59,7 +59,20 @@ async def handle_wallet_menu(message: types.Message, state: FSMContext):
         )
         await state.clear() # Limpa o estado em caso de erro
 
-# --- 2. Manipulador que recebe o valor (quando no estado correto) ---
+# --- 2. Handler cancelamento
+@router.message(Command("cancelar"), StateFilter(WalletStates.waiting_for_recharge_amount))
+@router.message(F.text.casefold() == "cancelar", StateFilter(WalletStates.waiting_for_recharge_amount))
+async def handle_cancel_wallet(message: types.Message, state: FSMContext):
+    """
+    Cancela o fluxo de recarga da carteira.
+    """
+    await state.clear()
+    await message.answer(
+        "Operação cancelada. A voltar ao menu principal.",
+        reply_markup=get_main_menu_keyboard()
+    )
+
+# --- 3. Handler que recebe o valor (quando no estado correto) ---
 
 @router.message(StateFilter(WalletStates.waiting_for_recharge_amount), F.text)
 async def handle_recharge_amount(message: types.Message, state: FSMContext):
