@@ -9,20 +9,13 @@ def get_buy_product_keyboard(
     requer_email: bool
 ) -> InlineKeyboardMarkup:
     """
-    Cria um teclado inline "Comprar".
-    O callback_data agora inclui o TIPO de compra.
+    Cria um teclado inline "Comprar" (que leva à confirmação).
     """
     builder = InlineKeyboardBuilder()
     
-    # Define o prefixo com base no tipo de produto
-    if requer_email:
-        # Ex: "buy:email:uuid-do-produto"
-        callback_data_prefix = "buy:email:"
-    else:
-        # Ex: "buy:auto:uuid-do-produto"
-        callback_data_prefix = "buy:auto:"
-        
-    callback_data = f"{callback_data_prefix}{produto_id}"
+    # O callback data agora é para ABRIR A CONFIRMAÇÃO
+    # E ele precisa carregar o 'requer_email'
+    callback_data = f"confirm_buy:{produto_id}:{requer_email}"
     
     builder.row(
         InlineKeyboardButton(
@@ -31,6 +24,31 @@ def get_buy_product_keyboard(
         )
     )
     
+    return builder.as_markup()
+
+def get_purchase_confirmation_keyboard(
+    produto_id: str, 
+    requer_email: bool
+) -> InlineKeyboardMarkup:
+    """
+    Cria os botões "Confirmar Compra" e "Cancelar".
+    """
+    builder = InlineKeyboardBuilder()
+
+    # Define o prefixo do callback final (o que costumava ser)
+    if requer_email:
+        callback_data_prefix = "buy:email:"
+    else:
+        callback_data_prefix = "buy:auto:"
+    
+    callback_data = f"{callback_data_prefix}{produto_id}"
+
+    builder.row(
+        InlineKeyboardButton(text="✅ Confirmar Compra", callback_data=callback_data)
+    )
+    builder.row(
+        InlineKeyboardButton(text="« Cancelar / Voltar", callback_data="cancel_purchase")
+    )
     return builder.as_markup()
 
 def get_support_orders_keyboard(pedidos: list) -> InlineKeyboardMarkup:

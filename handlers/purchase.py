@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 
 from services.api_client import api_client
 from states.user_states import PurchaseStates  # <-- Importa o novo FSM
-from keyboards.inline_keyboards import get_email_confirmation_keyboard # <-- Importa novo teclado
+from keyboards.inline_keyboards import get_email_confirmation_keyboard, get_purchase_confirmation_keyboard
 from keyboards.reply_keyboards import get_main_menu_keyboard, get_cancel_keyboard
 
 router = Router()
@@ -13,16 +13,55 @@ router = Router()
 # Regex simples para validar e-mail (só para filtrar lixo)
 EMAIL_REGEX = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
 
-# --- FLUXO 1: Compra Automática (Login/Senha) ---
+# --- FLUXO PASSO 1: Mostrar Confirmação ---
+@router.callback_query(F.data.startswith("confirm_buy:"))
+async def handle_show_confirmation(query: types.CallbackQuery):
+    """
+    Mostra a mensagem de confirmação de compra.
+    """
+    await query.answer()
+    
+    try:
+        # Extrai os dados do callback
+        parts = query.data.split(":")
+        produto_id = parts[1]
+        requer_email = bool(parts[2] == 'True') # Converte a string 'True'/'False' para booleano
+
+        # Pega o texto da mensagem original para extrair nome e preço
+        # Isso evita uma chamada de API
+        message_text = query.message.text
+        
+        # Extrai o nome (1ª linha)
+        nome = message_text.split('\n')[0].replace("📺 **", "").replace("**", "").strip()
+        
+        # Extrai o preço (última linha)
+        preco = message_text.split("R$ ")[-1].replace("**", "").strip()
+        
+        # Monta o novo teclado
+        teclado = get_purchase_confirmation_keyboard(produto_id, requer_email)
+        
+        # Edita a mensagem
+        await query.message.edit_text(
+            f"Confirmar compra de **{nome}** por **R$ {preco}**?",
+            reply_markup=teclado
+        )
+        
+    except Exception as e:
+        print(f"Erro ao mostrar confirmação: {e}")
+        await query.message.edit_text("❌ Erro ao processar. Tente novamente.")
+
+# --- FLUXO PASSO 2 (Opção A): Compra Automática ---
 
 @router.callback_query(F.data.startswith("buy:auto:"))
 async def handle_buy_auto_callback(query: types.CallbackQuery, state: FSMContext):
     """
-    Processa o clique no botão "Comprar" para produtos de entrega AUTOMÁTICA.
+    Processa o clique no botão "Confirmar Compra" para produtos AUTOMÁTICOS.
     """
     await state.clear() # Garante que limpa qualquer FSM
     await query.answer("A processar a sua compra...")
-    msg_processando = await query.message.answer("A processar a sua compra... ⏳")
+    
+    # Edita a mensagem de confirmação para "processando"
+    await query.message.edit_text("A processar a sua compra... ⏳")
 
     try:
         produto_id = query.data.split(":")[2] # Pega o ID (buy:auto:ID)
@@ -30,8 +69,9 @@ async def handle_buy_auto_callback(query: types.CallbackQuery, state: FSMContext
 
         # Chama a API (sem e-mail)
         resultado = await api_client.make_purchase(telegram_id, produto_id)
-        await msg_processando.delete()
-
+        
+        # Edita a mensagem de "processando" para o resultado final
+        
         if resultado.get("success"):
             # SUCESSO!
             dados_compra = resultado.get("data", {})
@@ -44,7 +84,7 @@ async def handle_buy_auto_callback(query: types.CallbackQuery, state: FSMContext
                 f"⚠️ *Por favor, não altere a senha! Apenas 1 utilizador por conta.*\n\n"
                 f"O seu novo saldo é: **R$ {dados_compra.get('novo_saldo')}**"
             )
-            await query.message.answer(texto_sucesso)
+            await query.message.edit_text(texto_sucesso)
         else:
             # FALHA! (Saldo, Estoque, etc.)
             status_code = resultado.get("status_code")
@@ -53,20 +93,22 @@ async def handle_buy_auto_callback(query: types.CallbackQuery, state: FSMContext
             if status_code == 402:
                 texto_falha += "\n\nPor favor, vá a '💳 Carteira' para adicionar mais saldo."
             
-            await query.message.answer(texto_falha)
+            await query.message.edit_text(texto_falha)
 
     except Exception as e:
-        await msg_processando.delete()
+        # Erro ao editar a mensagem
         print(f"Erro inesperado no fluxo de compra AUTO: {e}")
-        await query.message.answer("❌ Ocorreu um erro crítico. Tente novamente.")
+        try:
+            await query.message.edit_text("❌ Ocorreu um erro crítico. Tente novamente.")
+        except:
+            pass # Se a edição falhar, não há o que fazer
 
-
-# --- FLUXO 2: Compra Manual (E-mail) ---
+# --- FLUXO PASSO 2 (Opção B): Compra Manual (E-mail) ---
 
 @router.callback_query(F.data.startswith("buy:email:"))
 async def handle_buy_email_start(query: types.CallbackQuery, state: FSMContext):
     """
-    PASSO 1: Inicia o fluxo de compra manual, pedindo o e-mail.
+    PASSO 1 (Fluxo de E-mail): Inicia o fluxo, pedindo o e-mail.
     """
     await query.answer("Este produto requer entrega manual.")
     
@@ -75,8 +117,8 @@ async def handle_buy_email_start(query: types.CallbackQuery, state: FSMContext):
     # Guarda o ID do produto na "memória" (FSM)
     await state.update_data(produto_id=produto_id)
     
-    # Pergunta pelo e-mail
-    await query.message.answer(
+    # Edita a mensagem de confirmação para a pergunta de e-mail
+    await query.message.edit_text(
         "Para este produto, precisamos do seu e-mail para onde o convite será enviado.\n\n"
         "Por favor, **digite o seu endereço de e-mail**:\n\n"
         "Use /cancelar ou o botão abaixo para voltar.",
@@ -86,6 +128,16 @@ async def handle_buy_email_start(query: types.CallbackQuery, state: FSMContext):
     # Define o próximo estado
     await state.set_state(PurchaseStates.awaiting_email)
 
+
+# --- FLUXO PASSO 3: Cancelar Compra ---
+@router.callback_query(F.data == "cancel_purchase")
+async def handle_cancel_purchase(query: types.CallbackQuery, state: FSMContext):
+    """
+    Cancela o fluxo de compra (clicou em "Cancelar / Voltar").
+    """
+    await state.clear()
+    await query.answer()
+    await query.message.edit_text("Compra cancelada.")
 
 @router.message(StateFilter(PurchaseStates.awaiting_email), F.text)
 async def handle_email_received(message: types.Message, state: FSMContext):
