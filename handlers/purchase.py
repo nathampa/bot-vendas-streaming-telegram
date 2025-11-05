@@ -82,7 +82,7 @@ async def handle_buy_auto_callback(query: types.CallbackQuery, state: FSMContext
                 f"{dados_compra.get('mensagem_entrega')}\n" # Mensagem da API
                 f"Login: `{dados_compra.get('login')}`\n"
                 f"Senha: `{dados_compra.get('senha')}`\n\n"
-                f"⚠️ *Por favor, não altere a senha! Apenas 1 utilizador por conta.*\n\n"
+                f"⚠️ *Por favor, não altere a senha! Apenas 1 utilizador por conta. RISCO DE PERDER O SEU ACESSO!*\n\n"
                 f"O seu novo saldo é: **R$ {dados_compra.get('novo_saldo')}**"
             )
             # 3. Envia o sucesso como NOVA MENSAGEM
