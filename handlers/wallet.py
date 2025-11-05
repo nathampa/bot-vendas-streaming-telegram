@@ -127,9 +127,9 @@ async def handle_recharge_amount(message: types.Message, state: FSMContext):
                 photo=qr_code_file,
                 caption=(
                     f"✅ PIX gerado com sucesso no valor de **R$ {valor:.2f}**!\n\n"
-                    f"Copie o código abaixo e pague no seu banco:\n\n"
-                    f"`{pix_copia_e_cola}`\n\n"
-                    f"O saldo será creditado automaticamente após o pagamento."
+                    f"Pague usando o QR Code ou o código abaixo.\n\n"
+                    f"O saldo será creditado automaticamente após o pagamento.\n\n"
+                    f"**Aqui abaixo está somente o código do pix copia e cola para facilitar na hora do pagamento.**"
                 ),
                 # Envia o menu principal de volta
                 reply_markup=get_main_menu_keyboard() 
@@ -140,11 +140,16 @@ async def handle_recharge_amount(message: types.Message, state: FSMContext):
             # Plano B: Se o QR Code falhar, envia só o texto
             await message.answer(
                 f"✅ PIX gerado com sucesso no valor de **R$ {valor:.2f}**!\n\n"
-                f"Copie o código abaixo e pague no seu banco:\n\n"
-                f"`{pix_copia_e_cola}`\n\n"
-                f"O saldo será creditado automaticamente após o pagamento.",
+                f"(Não foi possível gerar o QR Code. Use o código abaixo.)\n\n"
+                f"O saldo será creditado automaticamente após o pagamento.\n\n"
+                f"**Aqui abaixo está somente o código do pix copia e cola para facilitar na hora do pagamento.**",
                 reply_markup=get_main_menu_keyboard()
             )
+        
+        # 6. Envia a mensagem SÓ COM O CÓDIGO
+        await message.answer(
+            f"`{pix_copia_e_cola}`"
+        )
 
     except Exception as e:
         print(f"Erro ao chamar api_client.create_recharge: {e}")
