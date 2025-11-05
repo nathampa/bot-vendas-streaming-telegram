@@ -10,6 +10,7 @@ router = Router()
 
 # --- 1. Manipulador para o comando /sugerir ---
 
+@router.message(F.text == "💡 Sugerir")
 @router.message(Command("sugerir"))
 async def handle_suggest_start(message: types.Message, state: FSMContext):
     """

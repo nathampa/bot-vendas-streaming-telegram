@@ -15,7 +15,10 @@ def get_main_menu_keyboard() -> ReplyKeyboardMarkup:
         KeyboardButton(text="💳 Carteira")
     )
     builder.row(
-        KeyboardButton(text="🎁 Resgatar Código"),
+        KeyboardButton(text="🎁 Resgatar Código")
+    )
+    builder.row(
+        KeyboardButton(text="💡 Sugerir"),
         KeyboardButton(text="🆘 Suporte")
     )
     
