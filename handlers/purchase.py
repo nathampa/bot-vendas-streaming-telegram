@@ -81,9 +81,9 @@ async def handle_buy_auto_callback(query: types.CallbackQuery, state: FSMContext
             texto_sucesso = (
                 f"✅ **Compra Concluída!**\n\n"
                 f"Obrigado por comprar o **{dados_compra.get('produto_nome')}**.\n\n"
-                f"{dados_compra.get('mensagem_entrega')}\n" # Mensagem da API
                 f"Login: `{dados_compra.get('login')}`\n"
                 f"Senha: `{dados_compra.get('senha')}`\n\n"
+                f"**Instruções Importantes:**\n{dados_compra.get('mensagem_entrega')}\n\n" # Mensagem da API
                 f"⚠️ *Por favor, não altere a senha! Apenas 1 utilizador por conta. RISCO DE PERDER O SEU ACESSO!*\n\n"
                 f"O seu novo saldo é: **R$ {dados_compra.get('novo_saldo')}**"
             )
