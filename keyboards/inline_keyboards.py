@@ -30,20 +30,21 @@ import datetime
 def build_product_grid(produtos: list) -> InlineKeyboardMarkup:
     """
     Cria um teclado inline com uma grade de botões,
-    um para cada produto, em 2 colunas.
+    um para cada produto, em 1 coluna.
     """
     builder = InlineKeyboardBuilder()
     
     for produto in produtos:
         builder.add(
             InlineKeyboardButton(
-                text=f"📺 {produto['nome']}",
+                # Mostra nome e preço
+                text=f"📺 {produto['nome']} (R$ {produto['preco']})",
                 # Este callback_data vai acionar a tela de detalhes
                 callback_data=f"show_product:{produto['id']}"
             )
         )
     
-    # Ajusta para 1 colunas
+    # Ajusta para 1 coluna
     builder.adjust(1) 
     return builder.as_markup()
 
