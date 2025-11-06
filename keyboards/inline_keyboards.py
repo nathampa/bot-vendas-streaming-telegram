@@ -38,7 +38,7 @@ def build_product_grid(produtos: list) -> InlineKeyboardMarkup:
         builder.add(
             InlineKeyboardButton(
                 # Mostra nome e preço
-                text=f"📺 {produto['nome']} (R$ {produto['preco']})",
+                text=f"📺 {produto['nome']} - (R$ {produto['preco']})",
                 # Este callback_data vai acionar a tela de detalhes
                 callback_data=f"show_product:{produto['id']}"
             )
