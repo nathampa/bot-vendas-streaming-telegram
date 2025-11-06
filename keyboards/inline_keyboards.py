@@ -43,8 +43,8 @@ def build_product_grid(produtos: list) -> InlineKeyboardMarkup:
             )
         )
     
-    # Ajusta para 2 colunas, como no seu print
-    builder.adjust(2) 
+    # Ajusta para 1 colunas
+    builder.adjust(1) 
     return builder.as_markup()
 
 # Função detalhes do pedido
