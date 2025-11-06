@@ -8,7 +8,9 @@ from states.user_states import PurchaseStates
 from keyboards.inline_keyboards import (
     get_email_confirmation_keyboard,
     get_purchase_confirmation_keyboard,
-    get_buy_product_keyboard 
+    get_buy_product_keyboard,
+    build_product_grid,
+    get_product_details_keyboard
 )
 from keyboards.reply_keyboards import get_main_menu_keyboard, get_cancel_keyboard
 from core.config import settings
@@ -18,6 +20,79 @@ router = Router()
 # Regex simples para validar e-mail (só para filtrar lixo)
 EMAIL_REGEX = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
 
+
+# --- NOVO HANDLER: Mostra os detalhes do produto ---
+@router.callback_query(F.data.startswith("show_product:"))
+async def handle_show_product_details(query: types.CallbackQuery):
+    """
+    Mostra a descrição, preço e botão "Comprar" para um produto.
+    (Esta é a nova etapa que você pediu)
+    """
+    await query.answer()
+    
+    try:
+        produto_id = query.data.split(":")[1]
+        
+        # Busca os produtos (ineficiente, mas é como o 'cancel' já fazia)
+        produtos = await api_client.get_produtos()
+        if not produtos:
+            raise Exception("API não retornou produtos")
+            
+        produto_original = None
+        for p in produtos:
+            if p['id'] == produto_id:
+                produto_original = p
+                break
+        
+        if not produto_original:
+            raise Exception("Produto não encontrado na lista da API")
+        
+        # Reconstrói a mensagem de detalhes
+        texto_produto = (
+            f"📺 **{produto_original['nome']}**\n\n"
+            f"📝 {produto_original['descricao']}\n\n"
+            f"💰 **Preço: R$ {produto_original['preco']}**"
+        )
+        
+        # Reconstrói o teclado de detalhes
+        teclado = get_product_details_keyboard(
+            produto_id=produto_original['id'],
+            preco=produto_original['preco'],
+            requer_email=produto_original['requer_email_cliente']
+        )
+        
+        # Edita a mensagem da "grade" para esta "descrição"
+        await query.message.edit_text(texto_produto, reply_markup=teclado)
+
+    except Exception as e:
+        print(f"Erro ao mostrar detalhes do produto: {e}")
+        await query.message.edit_text("❌ Erro ao carregar detalhes. Tente novamente.")
+
+# --- NOVO HANDLER: Volta para o catálogo (grid) ---
+@router.callback_query(F.data == "show_catalog")
+async def handle_show_catalog(query: types.CallbackQuery):
+    """
+    Volta da tela de "Detalhes" para a "Grade de Produtos".
+    """
+    await query.answer("Voltando ao catálogo...")
+    
+    produtos = await api_client.get_produtos()
+    
+    if not produtos:
+        await query.message.edit_text(
+            "😕 Nenhum produto disponível no momento. "
+            "Tente novamente mais tarde."
+        )
+        return
+
+    teclado_grid = build_product_grid(produtos)
+    
+    # Edita a mensagem de "detalhes" de volta para a "grade"
+    await query.message.edit_text(
+        "**Nossos Produtos:**\n\n"
+        "Selecione um produto abaixo para ver os detalhes e comprar:",
+        reply_markup=teclado_grid
+    )
 
 # --- FLUXO PASSO 1: Mostrar Confirmação ---
 @router.callback_query(F.data.startswith("confirm_buy:"))
@@ -137,55 +212,56 @@ async def handle_buy_email_start(query: types.CallbackQuery, state: FSMContext):
 
 
 # --- FLUXO PASSO 3: Cancelar Compra ---
-@router.callback_query(F.data.startswith("cancel_purchase:"))
-async def handle_cancel_purchase(query: types.CallbackQuery, state: FSMContext):
-    """
-    Cancela o fluxo de compra (clicou em "Cancelar / Voltar")
-    e REVERTE a mensagem para a descrição original.
-    """
-    await state.clear()
-    await query.answer("Voltando...")
+# Função removida
+# @router.callback_query(F.data.startswith("cancel_purchase:"))
+# async def handle_cancel_purchase(query: types.CallbackQuery, state: FSMContext):
+#     """
+#     Cancela o fluxo de compra (clicou em "Cancelar / Voltar")
+#     e REVERTE a mensagem para a descrição original.
+#     """
+#     await state.clear()
+#     await query.answer("Voltando...")
     
-    try:
-        produto_id_cancelado = query.data.split(":")[1]
+#     try:
+#         produto_id_cancelado = query.data.split(":")[1]
         
-        # 1. Busca TODOS os produtos da API
-        produtos = await api_client.get_produtos()
-        if not produtos:
-            raise Exception("API não retornou produtos")
+#         # 1. Busca TODOS os produtos da API
+#         produtos = await api_client.get_produtos()
+#         if not produtos:
+#             raise Exception("API não retornou produtos")
             
-        # 2. Encontra o produto específico que foi cancelado
-        produto_original = None
-        for p in produtos:
-            if p['id'] == produto_id_cancelado:
-                produto_original = p
-                break
+#         # 2. Encontra o produto específico que foi cancelado
+#         produto_original = None
+#         for p in produtos:
+#             if p['id'] == produto_id_cancelado:
+#                 produto_original = p
+#                 break
         
-        if not produto_original:
-            raise Exception("Produto não encontrado na lista da API")
+#         if not produto_original:
+#             raise Exception("Produto não encontrado na lista da API")
             
-        # 3. Reconstrói a mensagem original (igual ao catalog.py)
-        texto_produto = (
-            f"📺 **{produto_original['nome']}**\n"
-            f"📝 {produto_original['descricao']}\n\n"
-            f"💰 **Preço: R$ {produto_original['preco']}**"
-        )
+#         # 3. Reconstrói a mensagem original (igual ao catalog.py)
+#         texto_produto = (
+#             f"📺 **{produto_original['nome']}**\n"
+#             f"📝 {produto_original['descricao']}\n\n"
+#             f"💰 **Preço: R$ {produto_original['preco']}**"
+#         )
         
-        # 4. Reconstrói o teclado original
-        teclado = get_buy_product_keyboard(
-            produto_id=produto_original['id'],
-            produto_nome=produto_original['nome'],
-            preco=produto_original['preco'],
-            requer_email=produto_original['requer_email_cliente']
-        )
+#         # 4. Reconstrói o teclado original
+#         teclado = get_buy_product_keyboard(
+#             produto_id=produto_original['id'],
+#             produto_nome=produto_original['nome'],
+#             preco=produto_original['preco'],
+#             requer_email=produto_original['requer_email_cliente']
+#         )
         
-        # 5. Edita a mensagem de volta ao original
-        await query.message.edit_text(texto_produto, reply_markup=teclado)
+#         # 5. Edita a mensagem de volta ao original
+#         await query.message.edit_text(texto_produto, reply_markup=teclado)
 
-    except Exception as e:
-        print(f"Erro ao reverter cancelamento de compra: {e}")
-        # Se tudo falhar, apenas edita a mensagem
-        await query.message.edit_text("Compra cancelada.")
+#     except Exception as e:
+#         print(f"Erro ao reverter cancelamento de compra: {e}")
+#         # Se tudo falhar, apenas edita a mensagem
+#         await query.message.edit_text("Compra cancelada.")
 
 
 # --- Handler de Cancelamento por Texto (VEM ANTES de F.text) ---

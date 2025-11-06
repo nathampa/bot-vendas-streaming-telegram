@@ -2,28 +2,80 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import datetime
 
-def get_buy_product_keyboard(
+# def get_buy_product_keyboard(
+#     produto_id: str, 
+#     produto_nome: str, 
+#     preco: str,
+#     requer_email: bool
+# ) -> InlineKeyboardMarkup:
+#     """
+#     Cria um teclado inline "Comprar" (que leva à confirmação).
+#     """
+#     builder = InlineKeyboardBuilder()
+    
+#     # O callback data agora é para ABRIR A CONFIRMAÇÃO
+#     # E ele precisa carregar o 'requer_email'
+#     callback_data = f"confirm_buy:{produto_id}:{requer_email}"
+    
+#     builder.row(
+#         InlineKeyboardButton(
+#             text=f"✅ Comprar (R$ {preco})",
+#             callback_data=callback_data
+#         )
+#     )
+    
+#     return builder.as_markup()
+
+# Função da nova grade de produtos
+def build_product_grid(produtos: list) -> InlineKeyboardMarkup:
+    """
+    Cria um teclado inline com uma grade de botões,
+    um para cada produto, em 2 colunas.
+    """
+    builder = InlineKeyboardBuilder()
+    
+    for produto in produtos:
+        builder.add(
+            InlineKeyboardButton(
+                text=f"📺 {produto['nome']}",
+                # Este callback_data vai acionar a tela de detalhes
+                callback_data=f"show_product:{produto['id']}"
+            )
+        )
+    
+    # Ajusta para 2 colunas, como no seu print
+    builder.adjust(2) 
+    return builder.as_markup()
+
+# Função detalhes do pedido
+def get_product_details_keyboard(
     produto_id: str, 
-    produto_nome: str, 
     preco: str,
     requer_email: bool
 ) -> InlineKeyboardMarkup:
     """
-    Cria um teclado inline "Comprar" (que leva à confirmação).
+    Cria os botões "Comprar" e "Voltar ao Catálogo"
+    para a tela de detalhes do produto.
     """
     builder = InlineKeyboardBuilder()
-    
-    # O callback data agora é para ABRIR A CONFIRMAÇÃO
-    # E ele precisa carregar o 'requer_email'
-    callback_data = f"confirm_buy:{produto_id}:{requer_email}"
-    
+
+    # Botão 1: Comprar (leva à tela de confirmação existente)
     builder.row(
         InlineKeyboardButton(
             text=f"✅ Comprar (R$ {preco})",
-            callback_data=callback_data
+            # Este callback_data aciona o 'handle_show_confirmation'
+            # que já existe em purchase.py
+            callback_data=f"confirm_buy:{produto_id}:{requer_email}"
         )
     )
-    
+    # Botão 2: Voltar
+    builder.row(
+        InlineKeyboardButton(
+            text="« Voltar ao Catálogo",
+            # Este callback_data vai nos levar de volta à grade
+            callback_data="show_catalog" 
+        )
+    )
     return builder.as_markup()
 
 def get_purchase_confirmation_keyboard(
@@ -47,7 +99,10 @@ def get_purchase_confirmation_keyboard(
         InlineKeyboardButton(text="✅ Confirmar Compra", callback_data=callback_data)
     )
     builder.row(
-        InlineKeyboardButton(text="« Cancelar / Voltar", callback_data=f"cancel_purchase:{produto_id}")
+        InlineKeyboardButton(
+            text="« Cancelar / Voltar", 
+            callback_data=f"show_product:{produto_id}"
+        )
     )
     return builder.as_markup()
 
