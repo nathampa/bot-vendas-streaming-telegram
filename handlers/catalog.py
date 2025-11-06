@@ -2,7 +2,7 @@ from aiogram import Router, types, F
 from aiogram.filters import Command
 
 from services.api_client import api_client
-from keyboards.inline_keyboards import get_buy_product_keyboard, build_product_grid
+from keyboards.inline_keyboards import build_product_grid
 
 router = Router()
 
