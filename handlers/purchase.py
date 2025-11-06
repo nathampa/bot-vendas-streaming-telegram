@@ -11,6 +11,7 @@ from keyboards.inline_keyboards import (
     get_buy_product_keyboard 
 )
 from keyboards.reply_keyboards import get_main_menu_keyboard, get_cancel_keyboard
+from core.config import settings
 
 router = Router()
 
@@ -296,6 +297,25 @@ async def handle_email_confirm(query: types.CallbackQuery, state: FSMContext):
                 f"O seu novo saldo é: **R$ {dados_compra.get('novo_saldo')}**"
             )
             await query.message.answer(texto_sucesso)
+
+            # NOTIFICAÇÃO PARA O ADMIN
+            try:
+                admin_id = settings.ADMIN_TELEGRAM_ID
+                user_name = query.from_user.full_name
+                user_id = query.from_user.id
+                produto_nome = dados_compra.get('produto_nome')
+                
+                texto_notificacao = (
+                    f"📦 **Nova Compra Manual** 📦\n\n"
+                    f"**Cliente:** {user_name} (ID: {user_id})\n"
+                    f"**Produto:** {produto_nome}\n"
+                    f"**E-mail para Entrega:** `{email}`\n\n"
+                    f"Por favor, realize a entrega manual."
+                )
+                await query.bot.send_message(chat_id=admin_id, text=texto_notificacao, parse_mode="Markdown")
+            except Exception as e_notify:
+                print(f"ERRO AO NOTIFICAR ADMIN (Compra Manual): {e_notify}")
+
         else:
             # FALHA! (Saldo, Estoque, etc.)
             detalhe = resultado.get("detail", "Erro desconhecido")

@@ -6,6 +6,7 @@ from services.api_client import api_client
 from states.user_states import SupportStates
 from keyboards.inline_keyboards import get_support_orders_keyboard, get_support_reason_keyboard
 from keyboards.reply_keyboards import get_main_menu_keyboard
+from core.config import settings
 
 router = Router()
 
@@ -126,6 +127,26 @@ async def handle_reason_selection(query: types.CallbackQuery, state: FSMContext)
             "Se a resolução automática falhar ou demorar, "
             "você pode [falar com o admin](https://t.me/nathampa) a qualquer momento."
         )
+
+        # NOTIFICA O ADMIN SOBRE UM TICKET ABERTO
+        try:
+            admin_id = settings.ADMIN_TELEGRAM_ID
+            user_name = query.from_user.full_name
+            user_id = query.from_user.id
+            
+            texto_notificacao = (
+                f"🔔 **Novo Ticket de Suporte Aberto** 🔔\n\n"
+                f"**Cliente:** {user_name} (ID: {user_id})\n"
+                f"**Ticket ID:** {resultado.get('id')}\n"
+                f"**Pedido ID:** {pedido_id}\n"
+                f"**Motivo:** {motivo}\n\n"
+                f"Por favor, verifique o painel admin."
+            )
+            await query.bot.send_message(chat_id=admin_id, text=texto_notificacao)
+        except Exception as e_notify:
+            print(f"ERRO AO NOTIFICAR ADMIN (Novo Ticket): {e_notify}")
+
+        
     elif resultado and resultado.get("detail"):
         # Falha (ex: 409 Ticket já existe)
         texto_resposta = (

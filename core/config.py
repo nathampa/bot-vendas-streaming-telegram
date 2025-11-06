@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     # URL base da nossa API FastAPI
     API_BASE_URL: str
 
+    # Telegram id do admin (@nathampa)
+    ADMIN_TELEGRAM_ID: int = 1792589341
+
     # Configuração para ler do ficheiro .env
     model_config = SettingsConfigDict(env_file=".env")
 
