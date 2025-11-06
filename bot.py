@@ -49,6 +49,8 @@ async def main():
 
     # 4. Limpa webhooks pendentes (boa prática)
     await bot.delete_webhook(drop_pending_updates=True)
+
+    await set_bot_commands(bot)
     
     # 5. Inicia o "polling" (o bot começa a "ouvir" o Telegram)
     print("Bot a iniciar...")
