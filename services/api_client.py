@@ -293,6 +293,30 @@ class APIClient:
                 # A API está offline
                 print(f"Erro de conexão ao enviar sugestão: {e}")
                 return None
+            
+    # Metodo buscar ids de todos usuarios
+    async def get_all_user_ids(self) -> list[int] | None:
+        """
+        Busca a lista de todos os Telegram IDs dos clientes na API.
+        (Chama GET /api/v1/usuarios/all-ids)
+        """
+        async with httpx.AsyncClient() as client:
+            try:
+                print("APIClient: A tentar buscar /usuarios/all-ids/")
+                response = await client.get(
+                    f"{self.base_url}/usuarios/all-ids",
+                    headers=self.bot_headers
+                )
+                response.raise_for_status() 
+                print(f"APIClient: /usuarios/all-ids/ retornado com sucesso ({response.status_code})")
+                return response.json() # Retorna a lista [123, 456, ...]
+            
+            except httpx.HTTPStatusError as e:
+                print(f"Erro HTTP ao buscar IDs de usuários: {e.response.status_code} - {e.response.text}")
+                return None
+            except httpx.RequestError as e:
+                print(f"Erro de conexão ao buscar IDs de usuários: {e}")
+                return None
 
 # Criamos uma instância única do cliente para ser usada em todo o bot
 api_client = APIClient()

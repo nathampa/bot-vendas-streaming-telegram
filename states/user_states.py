@@ -39,3 +39,10 @@ class PurchaseStates(StatesGroup):
     awaiting_email = State()
     # 2. Aguardando o usuário confirmar o e-mail (Sim/Não)
     awaiting_email_confirmation = State()
+
+class BroadcastStates(StatesGroup):
+    """
+    Estados para o fluxo de Admin Broadcast.
+    """
+    awaiting_message = State()
+    awaiting_confirmation = State()

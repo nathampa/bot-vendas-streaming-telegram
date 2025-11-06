@@ -181,3 +181,22 @@ def get_email_confirmation_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardButton(text="« Cancelar Compra", callback_data="buy_email:cancel")
     )
     return builder.as_markup()
+
+def get_broadcast_confirmation_keyboard() -> InlineKeyboardMarkup:
+    """
+    Cria os botões "Confirmar Envio" e "Cancelar" para o broadcast.
+    """
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(
+            text="✅ Sim, enviar para TODOS", 
+            callback_data="broadcast:confirm"
+        )
+    )
+    builder.row(
+        InlineKeyboardButton(
+            text="❌ Cancelar", 
+            callback_data="broadcast:cancel"
+        )
+    )
+    return builder.as_markup()
