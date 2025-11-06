@@ -3,6 +3,7 @@ import logging
 import sys
 from aiogram.client.default import DefaultBotProperties
 from aiogram import Bot, Dispatcher
+from aiogram.types import BotCommand
 from aiogram.enums import ParseMode
 
 # Importa as nossas configurações (o Token!)
@@ -10,6 +11,21 @@ from core.config import settings
 
 # Importa os nossos manipuladores de comandos
 from handlers import common, wallet, catalog, purchase, support, giftcard, suggestions
+
+# Seta a lista dos comandos, para exibir o menu azul
+async def set_bot_commands(bot: Bot):
+    """
+    Define a lista de comandos que aparece no botão "Menu" do Telegram.
+    """
+    commands = [
+        BotCommand(command="start", description="▶️ Iniciar o bot"),
+        BotCommand(command="produtos", description="🛍️ Ver Produtos"),
+        BotCommand(command="carteira", description="💳 Ver Carteira/Adicionar Saldo"),
+        BotCommand(command="resgatar", description="🎁 Resgatar Código"),
+        BotCommand(command="suporte", description="🆘 Abrir ticket de Suporte"),
+        BotCommand(command="sugerir", description="💡 Fazer uma sugestão"),
+    ]
+    await bot.set_my_commands(commands)
 
 async def main():
     # 1. Cria o objeto Bot com o nosso token
