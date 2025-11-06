@@ -8,7 +8,6 @@ from states.user_states import PurchaseStates
 from keyboards.inline_keyboards import (
     get_email_confirmation_keyboard,
     get_purchase_confirmation_keyboard,
-    get_buy_product_keyboard,
     build_product_grid,
     get_product_details_keyboard
 )
