@@ -19,6 +19,7 @@ def get_main_menu_keyboard() -> ReplyKeyboardMarkup:
     )
     builder.row(
         KeyboardButton(text="💡 Sugerir"),
+        KeyboardButton(text="👥 Indique e Ganhe"),
         KeyboardButton(text="🆘 Suporte")
     )
     

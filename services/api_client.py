@@ -1,5 +1,6 @@
 import httpx
 from core.config import settings
+from typing import Optional
 
 class APIClient:
     """
@@ -39,7 +40,7 @@ class APIClient:
                 print(f"Erro de conexão ao buscar produtos: {e}")
                 return None
 
-    async def register_user(self, telegram_id: int, nome_completo: str) -> dict | None:
+    async def register_user(self, telegram_id: int, nome_completo: str, referrer_id: Optional[int] = None) -> dict | None:
         """
         Regista (ou encontra) um usuário na nossa API.
         (Chama POST /api/v1/usuarios/register)
@@ -47,7 +48,8 @@ class APIClient:
         
         data = {
             "telegram_id": telegram_id,
-            "nome_completo": nome_completo
+            "nome_completo": nome_completo,
+            "referrer_id": referrer_id
         }
         
         async with httpx.AsyncClient() as client:

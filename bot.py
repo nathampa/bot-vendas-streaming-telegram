@@ -10,7 +10,7 @@ from aiogram.enums import ParseMode
 from core.config import settings
 
 # Importa os nossos manipuladores de comandos
-from handlers import common, wallet, catalog, purchase, support, giftcard, suggestions, admin
+from handlers import common, wallet, catalog, purchase, support, giftcard, suggestions, admin, affiliate
 
 # Seta a lista dos comandos, para exibir o menu azul
 async def set_bot_commands(bot: Bot):
@@ -40,6 +40,7 @@ async def main():
     # 3. Regista os nossos roteadores (handlers)
     # (Por agora, apenas os comandos comuns como /start)
     dp.include_router(admin.router)
+    dp.include_router(affiliate.router)
     dp.include_router(common.router)
     dp.include_router(wallet.router)
     dp.include_router(catalog.router)
