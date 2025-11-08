@@ -1,21 +1,19 @@
-# Em: handlers/affiliate.py (NOVO ARQUIVO)
-
 from aiogram import Router, types, F, Bot
 from aiogram.types import Message
-from core.config import settings # Precisamos do nome do bot, vamos adicionar lá
+from core.config import settings
 
 router = Router()
 
 TEXTO_AFILIADO = """
-<b>👥 Programa de Afiliados</b>
+👥 Programa de Afiliados
 
 Convide seus amigos para o bot e ganhe prêmios!
 
 Seu link de convite pessoal é:
 `{link}`
 
-<b>Como funciona?</b>
-1. Seu amigo deve entrar no bot <b>pela primeira vez</b> usando o seu link.
+Como funciona?
+1. Seu amigo deve entrar no bot pela primeira vez usando o seu link.
 2. Quando ele fizer a primeira {gatilho}, você ganha {premio}!
 
 Compartilhe seu link e comece a ganhar!
