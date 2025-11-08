@@ -34,8 +34,20 @@ async def handle_wallet_menu(message: types.Message, state: FSMContext):
         # 2. Se correu bem, extrai o saldo
         saldo = usuario_api.get("saldo_carteira", "0.00")
 
+        # Extrai o bônus pendente
+        bonus_pendente = usuario_api.get("pending_cashback_percent")
+
         texto_saldo = (
             f"O seu saldo atual é: **R$ {saldo}**\n\n"
+        )
+
+        if bonus_pendente:
+            texto_saldo += (
+                f"🎉 *Parabéns!* Você ganhou um bônus de indicação!\n"
+                f"Sua próxima recarga terá *{bonus_pendente}% de bônus*.\n\n"
+            )
+            
+        texto_saldo += (
             "Quanto gostaria de adicionar à sua carteira?\n\n"
             "Por favor, digite um valor (ex: `20.00` ou `20`).\n\n"
             "Use /cancelar ou o botão abaixo para voltar."
