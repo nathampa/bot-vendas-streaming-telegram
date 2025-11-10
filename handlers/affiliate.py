@@ -36,7 +36,7 @@ async def handle_affiliate_menu(message: Message, bot: Bot):
     
     # TODO: No futuro, podemos buscar as regras (gatilho/premio) da API
     # Por enquanto, usamos um texto genérico:
-    texto_gatilho = "recarga ou compra"
+    texto_gatilho = "compra"
     texto_premio = "um super prêmio"
 
     await message.answer(
