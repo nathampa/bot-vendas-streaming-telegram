@@ -32,7 +32,7 @@ async def handle_affiliate_menu(message: Message, bot: Bot):
         return
 
     # Gera o link no formato: t.me/NomeDoBot?start=ref_12345678
-    link = f"https://t.me/{bot_username}?start=ref_{user_id}"
+    link = f"t.me/{bot_username}?start=ref_{user_id}"
     
     # TODO: No futuro, podemos buscar as regras (gatilho/premio) da API
     # Por enquanto, usamos um texto genérico:
