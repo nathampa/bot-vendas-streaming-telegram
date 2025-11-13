@@ -181,7 +181,7 @@ async def handle_buy_auto_callback(query: types.CallbackQuery, state: FSMContext
 
 # --- FLUXO PASSO 2 (Opção C) Compra Manual (Admin) ---
 @router.callback_query(F.data.startswith("buy:manual:"))
-async def handle_buy_manual_callback(query: types.CallbackQuery, state: FSMContext, bot: types.Bot):
+async def handle_buy_manual_callback(query: types.CallbackQuery, state: FSMContext, bot: Bot):
     """
     Processa o clique "Confirmar Compra" para produtos de ENTREGA MANUAL ADMIN.
     """
