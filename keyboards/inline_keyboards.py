@@ -52,7 +52,7 @@ def build_product_grid(produtos: list) -> InlineKeyboardMarkup:
 def get_product_details_keyboard(
     produto_id: str, 
     preco: str,
-    requer_email: bool
+    tipo_entrega: str
 ) -> InlineKeyboardMarkup:
     """
     Cria os botões "Comprar" e "Voltar ao Catálogo"
@@ -66,7 +66,7 @@ def get_product_details_keyboard(
             text=f"✅ Comprar (R$ {preco})",
             # Este callback_data aciona o 'handle_show_confirmation'
             # que já existe em purchase.py
-            callback_data=f"confirm_buy:{produto_id}:{requer_email}"
+            callback_data=f"confirm_buy:{produto_id}:{tipo_entrega}"
         )
     )
     # Botão 2: Voltar
@@ -81,17 +81,20 @@ def get_product_details_keyboard(
 
 def get_purchase_confirmation_keyboard(
     produto_id: str, 
-    requer_email: bool
+    tipo_entrega: str
 ) -> InlineKeyboardMarkup:
     """
     Cria os botões "Confirmar Compra" e "Cancelar".
     """
     builder = InlineKeyboardBuilder()
 
-    # Define o prefixo do callback final (o que costumava ser)
-    if requer_email:
+    # Define o prefixo do callback final com base no tipo de entrega
+    if tipo_entrega == "SOLICITA_EMAIL":
         callback_data_prefix = "buy:email:"
+    elif tipo_entrega == "MANUAL_ADMIN":
+        callback_data_prefix = "buy:manual:"
     else:
+        # O padrão é AUTOMATICA
         callback_data_prefix = "buy:auto:"
     
     callback_data = f"{callback_data_prefix}{produto_id}"

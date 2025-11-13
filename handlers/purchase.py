@@ -20,7 +20,7 @@ router = Router()
 EMAIL_REGEX = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
 
 
-# --- NOVO HANDLER: Mostra os detalhes do produto ---
+# --- Mostra os detalhes do produto ---
 @router.callback_query(F.data.startswith("show_product:"))
 async def handle_show_product_details(query: types.CallbackQuery):
     """
@@ -57,7 +57,7 @@ async def handle_show_product_details(query: types.CallbackQuery):
         teclado = get_product_details_keyboard(
             produto_id=produto_original['id'],
             preco=produto_original['preco'],
-            requer_email=produto_original['requer_email_cliente']
+            tipo_entrega=produto_original['tipo_entrega']
         )
         
         # Edita a mensagem da "grade" para esta "descrição"
@@ -105,7 +105,7 @@ async def handle_show_confirmation(query: types.CallbackQuery):
         # Extrai os dados do callback
         parts = query.data.split(":")
         produto_id = parts[1]
-        requer_email = bool(parts[2] == 'True') # Converte a string 'True'/'False' para booleano
+        tipo_entrega = parts[2]
 
         # Pega o texto da mensagem original para extrair nome e preço
         message_text = query.message.text
@@ -117,7 +117,7 @@ async def handle_show_confirmation(query: types.CallbackQuery):
         preco = message_text.split("R$ ")[-1].replace("**", "").strip()
         
         # Monta o novo teclado
-        teclado = get_purchase_confirmation_keyboard(produto_id, requer_email)
+        teclado = get_purchase_confirmation_keyboard(produto_id, tipo_entrega)
         
         # Edita a mensagem
         await query.message.edit_text(
@@ -176,6 +176,72 @@ async def handle_buy_auto_callback(query: types.CallbackQuery, state: FSMContext
     except Exception as e:
         await query.message.delete()
         print(f"Erro inesperado no fluxo de compra AUTO: {e}")
+        await query.message.answer("❌ Ocorreu um erro crítico. Tente novamente.")
+
+
+# --- FLUXO PASSO 2 (Opção C) Compra Manual (Admin) ---
+@router.callback_query(F.data.startswith("buy:manual:"))
+async def handle_buy_manual_callback(query: types.CallbackQuery, state: FSMContext, bot: types.Bot):
+    """
+    Processa o clique "Confirmar Compra" para produtos de ENTREGA MANUAL ADMIN.
+    """
+    await state.clear() 
+    await query.answer("A processar a sua compra...")
+    
+    await query.message.edit_text("A processar a sua compra... ⏳")
+
+    try:
+        produto_id = query.data.split(":")[2] # Pega o ID (buy:manual:ID)
+        telegram_id = query.from_user.id
+
+        # Chama a API (sem e-mail)
+        resultado = await api_client.make_purchase(telegram_id, produto_id)
+        
+        await query.message.delete()
+
+        if resultado.get("success"):
+            # SUCESSO!
+            dados_compra = resultado.get("data", {})
+            # A API retorna a mensagem de "Aguarde" que configuramos
+            texto_sucesso = dados_compra.get('mensagem_entrega') 
+            await query.message.answer(texto_sucesso)
+
+            # NOTIFICAÇÃO PARA O ADMIN
+            try:
+                admin_id = settings.ADMIN_TELEGRAM_ID
+                user_name = query.from_user.full_name
+                user_id = query.from_user.id
+                produto_nome = dados_compra.get('produto_nome')
+                
+                texto_notificacao = (
+                    f"📦 **Nova Entrega Pendente!** 📦\n\n"
+                    f"**Cliente:** {user_name} (ID: {user_id})\n"
+                    f"**Produto:** {produto_nome}\n\n"
+                    f"Acesse o **Painel Admin** na seção 'Pedidos' "
+                    f"para inserir as credenciais e realizar a entrega."
+                )
+                # Usamos query.bot.send_message
+                await bot.send_message(
+                    chat_id=admin_id, 
+                    text=texto_notificacao, 
+                    parse_mode="Markdown"
+                )
+            except Exception as e_notify:
+                print(f"ERRO AO NOTIFICAR ADMIN (Entrega Manual): {e_notify}")
+
+        else:
+            # FALHA! (Saldo, Estoque, etc.)
+            status_code = resultado.get("status_code")
+            detalhe = resultado.get("detail", "Erro desconhecido")
+            texto_falha = f"❌ **Falha na Compra**\n\nMotivo: {detalhe}"
+            if status_code == 402:
+                texto_falha += "\n\nPor favor, vá a '💳 Carteira' para adicionar mais saldo."
+            
+            await query.message.answer(texto_falha)
+
+    except Exception as e:
+        await query.message.delete()
+        print(f"Erro inesperado no fluxo de compra MANUAL: {e}")
         await query.message.answer("❌ Ocorreu um erro crítico. Tente novamente.")
 
 # --- FLUXO PASSO 2 (Opção B): Compra Manual (E-mail) ---
