@@ -188,12 +188,19 @@ def get_email_confirmation_keyboard() -> InlineKeyboardMarkup:
 def get_broadcast_confirmation_keyboard() -> InlineKeyboardMarkup:
     """
     Cria os botões "Confirmar Envio" e "Cancelar" para o broadcast.
+    AGORA COM OPÇÃO DE COPY ou FORWARD.
     """
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(
-            text="✅ Sim, enviar para TODOS", 
-            callback_data="broadcast:confirm"
+            text="✅ Enviar Limpo (Copy)", 
+            callback_data="broadcast:confirm_copy"
+        )
+    )
+    builder.row(
+        InlineKeyboardButton(
+            text="➡️ Enviar com Emojis (Forward)", 
+            callback_data="broadcast:confirm_forward"
         )
     )
     builder.row(

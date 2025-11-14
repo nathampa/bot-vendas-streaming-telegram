@@ -69,17 +69,36 @@ async def handle_broadcast_message_received(message: Message, state: FSMContext)
     await message.answer(
         "Tem certeza que deseja enviar esta mensagem para **TODOS** os clientes?\n\n"
         "Esta ação não pode ser desfeita.",
+        "**Escolha o método de envio:**",
         reply_markup=get_broadcast_confirmation_keyboard()
     )
 
 # --- 4. Confirmação do Envio (Callback) ---
-@router.callback_query(F.data == "broadcast:confirm", StateFilter(BroadcastStates.awaiting_confirmation), IsAdmin())
+@router.callback_query(
+    F.data.startswith("broadcast:confirm_"), # Apanha "confirm_copy" e "confirm_forward"
+    StateFilter(BroadcastStates.awaiting_confirmation), 
+    IsAdmin()
+)
 async def handle_broadcast_confirm(query: types.CallbackQuery, state: FSMContext, bot: Bot):
     """
     [ADMIN] O admin clicou em "Sim, enviar". Inicia o envio em massa.
+    Determina se usa COPY ou FORWARD.
     """
-    await query.message.edit_text("Iniciando envio... ⏳")
     
+    # 1. Determina o método
+    send_method_str = query.data.split("_")[-1] # "copy" ou "forward"
+
+    if send_method_str == "copy":
+        await query.message.edit_text("Iniciando envio (Modo Cópia Limpa)... ⏳")
+        send_function = bot.copy_message
+    elif send_method_str == "forward":
+        await query.message.edit_text("Iniciando envio (Modo Encaminhar)... ⏳")
+        send_function = bot.forward_message
+    else:
+        await query.message.edit_text("❌ Erro de método. Tente /broadcast novamente.")
+        await state.clear()
+        return
+
     dados_fsm = await state.get_data()
     msg_chat_id = dados_fsm.get("message_chat_id")
     msg_id = dados_fsm.get("message_id")
@@ -111,9 +130,8 @@ async def handle_broadcast_confirm(query: types.CallbackQuery, state: FSMContext
 
     for i, user_id in enumerate(user_ids):
         try:
-            # Usamos 'copy_message' para enviar uma cópia limpa
-            # (sem o "Encaminhado de...")
-            await bot.copy_message(
+            # Usa a função (copy ou forward)
+            await send_function(
                 chat_id=user_id,
                 from_chat_id=msg_chat_id,
                 message_id=msg_id
