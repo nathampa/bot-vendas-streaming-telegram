@@ -66,10 +66,15 @@ async def handle_broadcast_message_received(message: Message, state: FSMContext)
     )
     await message.copy_to(chat_id=message.chat.id)
     
-    await message.answer(
+    # Combinamos as duas linhas de texto em um único argumento 'text'
+    texto_pergunta = (
         "Tem certeza que deseja enviar esta mensagem para **TODOS** os clientes?\n\n"
-        "Esta ação não pode ser desfeita.",
-        "**Escolha o método de envio:**",
+        "Esta ação não pode ser desfeita.\n\n"
+        "**Escolha o método de envio:**"
+    )
+    
+    await message.answer(
+        texto_pergunta, # <-- Agora é uma única variável
         reply_markup=get_broadcast_confirmation_keyboard()
     )
 
