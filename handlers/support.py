@@ -10,6 +10,10 @@ from core.config import settings
 
 router = Router()
 
+def escape_markdown(text: str) -> str:
+    escape_chars = r"_*`[]()"
+    return "".join(f"\\{char}" if char in escape_chars else char for char in text)
+
 # --- 1. Entrada do Fluxo (Botão "Suporte" ou /suporte) ---
 
 @router.message(F.text == "🆘 Suporte")
@@ -131,15 +135,18 @@ async def handle_reason_selection(query: types.CallbackQuery, state: FSMContext)
         # NOTIFICA O ADMIN SOBRE UM TICKET ABERTO
         try:
             admin_id = settings.ADMIN_TELEGRAM_ID
-            user_name = query.from_user.full_name
-            user_id = query.from_user.id
+            user_name = escape_markdown(query.from_user.full_name)
+            user_id = escape_markdown(str(query.from_user.id))
+            ticket_id = escape_markdown(str(resultado.get('id')))
+            pedido_id_md = escape_markdown(str(pedido_id))
+            motivo_md = escape_markdown(motivo)
             
             texto_notificacao = (
                 f"🔔 **Novo Ticket de Suporte Aberto** 🔔\n\n"
                 f"**Cliente:** {user_name} (ID: {user_id})\n"
-                f"**Ticket ID:** {resultado.get('id')}\n"
-                f"**Pedido ID:** {pedido_id}\n"
-                f"**Motivo:** {motivo}\n\n"
+                f"**Ticket ID:** {ticket_id}\n"
+                f"**Pedido ID:** {pedido_id_md}\n"
+                f"**Motivo:** {motivo_md}\n\n"
                 f"Por favor, verifique o painel admin."
             )
             await query.bot.send_message(chat_id=admin_id, text=texto_notificacao)
