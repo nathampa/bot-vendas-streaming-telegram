@@ -1,3 +1,4 @@
+import asyncio
 import base64
 from aiogram import Router, types, F
 from aiogram.filters import Command, StateFilter
@@ -8,6 +9,18 @@ from states.user_states import WalletStates # O nosso FSM
 from keyboards.reply_keyboards import get_main_menu_keyboard, get_cancel_keyboard
 
 router = Router()
+
+async def _notificar_expiracao_recarga(bot, telegram_id: int, recarga_id: str, expiracao_minutos: int) -> None:
+    await asyncio.sleep(expiracao_minutos * 60)
+    status_data = await api_client.get_recharge_status(recarga_id)
+    if not status_data:
+        return
+    if status_data.get("expirado") and status_data.get("status_pagamento") == "FALHOU":
+        await bot.send_message(
+            telegram_id,
+            "⏳ Sua recarga expirou porque o pagamento nao foi identificado dentro do prazo.\n"
+            "Se quiser, gere uma nova recarga em Carteira."
+        )
 
 # --- 1. Manipulador para o botão "Carteira" (ou comando /carteira) ---
 
@@ -121,6 +134,15 @@ async def handle_recharge_amount(message: types.Message, state: FSMContext):
         # 3. Sucesso! Extrai os dados do PIX (que a API simulou)
         pix_copia_e_cola = pix_data.get("pix_copia_e_cola")
         pix_qr_code_base64 = pix_data.get("pix_qr_code_base64")
+        recarga_id = pix_data.get("recarga_id")
+        expiracao_minutos = pix_data.get("expiracao_minutos")
+        try:
+            expiracao_minutos_int = int(expiracao_minutos) if expiracao_minutos is not None else None
+        except (TypeError, ValueError):
+            expiracao_minutos_int = None
+        aviso_expiracao = ""
+        if expiracao_minutos_int:
+            aviso_expiracao = f"Este PIX expira em {expiracao_minutos_int} minutos.\n\n"
 
         # 4. Limpa o estado
         await state.clear()
@@ -140,6 +162,7 @@ async def handle_recharge_amount(message: types.Message, state: FSMContext):
                 caption=(
                     f"✅ PIX gerado com sucesso no valor de **R$ {valor:.2f}**!\n\n"
                     f"Pague usando o QR Code ou o código abaixo.\n\n"
+                    f"{aviso_expiracao}"
                     f"O saldo será creditado automaticamente após o pagamento.\n\n"
                     f"**Aqui abaixo está somente o código do pix copia e cola para facilitar na hora do pagamento.**"
                 ),
@@ -153,6 +176,7 @@ async def handle_recharge_amount(message: types.Message, state: FSMContext):
             await message.answer(
                 f"✅ PIX gerado com sucesso no valor de **R$ {valor:.2f}**!\n\n"
                 f"(Não foi possível gerar o QR Code. Use o código abaixo.)\n\n"
+                f"{aviso_expiracao}"
                 f"O saldo será creditado automaticamente após o pagamento.\n\n"
                 f"**Aqui abaixo está somente o código do pix copia e cola para facilitar na hora do pagamento.**",
                 reply_markup=get_main_menu_keyboard()
@@ -162,6 +186,16 @@ async def handle_recharge_amount(message: types.Message, state: FSMContext):
         await message.answer(
             f"`{pix_copia_e_cola}`"
         )
+
+        if recarga_id and expiracao_minutos_int:
+            asyncio.create_task(
+                _notificar_expiracao_recarga(
+                    message.bot,
+                    message.from_user.id,
+                    str(recarga_id),
+                    expiracao_minutos_int
+                )
+            )
 
     except Exception as e:
         print(f"Erro ao chamar api_client.create_recharge: {e}")

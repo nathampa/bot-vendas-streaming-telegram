@@ -111,6 +111,28 @@ class APIClient:
                 print(f"Erro de conexão ao criar recarga: {e}")
                 return None
 
+    async def get_recharge_status(self, recarga_id: str) -> dict | None:
+        """
+        Consulta o status de uma recarga pelo ID.
+        (Chama GET /api/v1/recargas/{recarga_id})
+        """
+        async with httpx.AsyncClient() as client:
+            try:
+                print(f"APIClient: A consultar status da recarga {recarga_id}...")
+                response = await client.get(
+                    f"{self.base_url}/recargas/{recarga_id}",
+                    headers=self.bot_headers
+                )
+                response.raise_for_status()
+                print("APIClient: Status da recarga consultado com sucesso.")
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                print(f"Erro HTTP ao consultar status da recarga: {e.response.status_code} - {e.response.text}")
+                return None
+            except httpx.RequestError as e:
+                print(f"Erro de conexÃ£o ao consultar status da recarga: {e}")
+                return None
+
     async def make_purchase(
         self, 
         telegram_id: int, 
