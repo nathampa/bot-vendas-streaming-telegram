@@ -121,10 +121,16 @@ def get_support_orders_keyboard(pedidos: list) -> InlineKeyboardMarkup:
         produto_nome = pedido['produto_nome']
         # Formata a data (ex: 31/10/2025 10:30)
         data = datetime.datetime.fromisoformat(pedido['data_compra']).strftime('%d/%m/%Y %H:%M')
+        sufixo_status = ""
+
+        if pedido.get("conta_expirada"):
+            sufixo_status = " - EXPIRADA"
+        elif pedido.get("dias_restantes") == 0:
+            sufixo_status = " - Expira hoje"
 
         builder.row(
             InlineKeyboardButton(
-                text=f"Pedido: {produto_nome} ({data})",
+                text=f"Pedido: {produto_nome} ({data}){sufixo_status}",
                 callback_data=f"support_order:{pedido_id}"
             )
         )

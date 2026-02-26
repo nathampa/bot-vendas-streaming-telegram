@@ -1,3 +1,5 @@
+import datetime
+
 from aiogram import Router, types, F
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -29,6 +31,15 @@ async def handle_support_start(message: types.Message, state: FSMContext):
     if pedidos is None:
         await message.answer("❌ Não consegui buscar o seu histórico de pedidos. A API pode estar offline.")
         return
+
+    expiracao_por_pedido = {
+        str(pedido["pedido_id"]): {
+            "conta_expirada": bool(pedido.get("conta_expirada", False)),
+            "data_expiracao": pedido.get("data_expiracao"),
+        }
+        for pedido in pedidos
+    }
+    await state.update_data(expiracao_por_pedido=expiracao_por_pedido)
 
     teclado_suporte = get_support_orders_keyboard(pedidos)
 
@@ -79,9 +90,27 @@ async def handle_order_selection(query: types.CallbackQuery, state: FSMContext):
     # Guarda o pedido_id no estado (memória)
     await state.update_data(pedido_id=pedido_id)
 
+    dados_fsm = await state.get_data()
+    expiracao_por_pedido = dados_fsm.get("expiracao_por_pedido", {})
+    dados_expiracao = expiracao_por_pedido.get(pedido_id, {})
+
+    aviso_expiracao = ""
+    if dados_expiracao.get("conta_expirada"):
+        data_expiracao_raw = dados_expiracao.get("data_expiracao")
+        data_expiracao_formatada = "data não informada"
+        if data_expiracao_raw:
+            try:
+                data_expiracao_formatada = datetime.date.fromisoformat(data_expiracao_raw).strftime("%d/%m/%Y")
+            except ValueError:
+                data_expiracao_formatada = str(data_expiracao_raw)
+
+        aviso_expiracao = (
+            f"⚠️ Aviso: a conta deste pedido expirou em {data_expiracao_formatada}.\n\n"
+        )
+
     # Altera a mensagem original (edit_text)
     await query.message.edit_text(
-        "Pedido selecionado. Agora, por favor, informe o motivo do problema:",
+        f"{aviso_expiracao}Pedido selecionado. Agora, por favor, informe o motivo do problema:",
         reply_markup=get_support_reason_keyboard() # <-- CORRIGIDO (sem argumento)
     )
 
