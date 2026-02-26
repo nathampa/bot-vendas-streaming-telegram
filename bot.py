@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 import sys
 from aiogram.client.default import DefaultBotProperties
@@ -11,6 +12,7 @@ from core.config import settings
 
 # Importa os nossos manipuladores de comandos
 from handlers import common, wallet, catalog, purchase, support, giftcard, suggestions, admin, affiliate
+from services.expiration_notifier import run_expiration_notifier
 
 # Seta a lista dos comandos, para exibir o menu azul
 async def set_bot_commands(bot: Bot):
@@ -53,10 +55,17 @@ async def main():
     await bot.delete_webhook(drop_pending_updates=True)
 
     await set_bot_commands(bot)
+
+    expiration_notifier_task = asyncio.create_task(run_expiration_notifier(bot))
     
     # 5. Inicia o "polling" (o bot começa a "ouvir" o Telegram)
     print("Bot a iniciar...")
-    await dp.start_polling(bot)
+    try:
+        await dp.start_polling(bot)
+    finally:
+        expiration_notifier_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await expiration_notifier_task
 
 if __name__ == "__main__":
     # Configura o logging para vermos o que se passa

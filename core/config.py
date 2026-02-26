@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     # Telegram id do admin (@nathampa)
     ADMIN_TELEGRAM_ID: int = 1792589341
 
+    # Intervalo (em minutos) para checar expirações pendentes e notificar usuários
+    EXPIRACAO_CHECK_INTERVAL_MINUTES: int = 30
+
     # Configuração para ler do ficheiro .env
     model_config = SettingsConfigDict(env_file=".env")
 

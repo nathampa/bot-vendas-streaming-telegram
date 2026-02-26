@@ -206,6 +206,56 @@ class APIClient:
             except httpx.RequestError as e:
                 print(f"Erro de conexão ao buscar pedidos: {e}")
                 return None
+
+    async def get_expiration_pending_notifications(self, limite: int = 200) -> list:
+        """
+        Busca pedidos que expiram hoje e ainda precisam de notificação.
+        (Chama GET /api/v1/usuarios/expiracoes-pendentes)
+        """
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(
+                    f"{self.base_url}/usuarios/expiracoes-pendentes",
+                    headers=self.bot_headers,
+                    params={"limite": limite},
+                )
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                print(f"Erro HTTP ao buscar expirações pendentes: {e.response.status_code} - {e.response.text}")
+                return []
+            except httpx.RequestError as e:
+                print(f"Erro de conexão ao buscar expirações pendentes: {e}")
+                return []
+
+    async def mark_expiration_notification_sent(self, pedido_id: str, data_expiracao: str) -> bool:
+        """
+        Marca no backend que a notificação de expiração de um pedido já foi enviada.
+        (Chama POST /api/v1/usuarios/expiracoes-pendentes/marcar-notificada)
+        """
+        payload = {
+            "pedido_id": pedido_id,
+            "data_expiracao": data_expiracao,
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(
+                    f"{self.base_url}/usuarios/expiracoes-pendentes/marcar-notificada",
+                    headers=self.bot_headers,
+                    json=payload,
+                )
+                response.raise_for_status()
+                return True
+            except httpx.HTTPStatusError as e:
+                print(
+                    "Erro HTTP ao marcar notificação de expiração como enviada: "
+                    f"{e.response.status_code} - {e.response.text}"
+                )
+                return False
+            except httpx.RequestError as e:
+                print(f"Erro de conexão ao marcar notificação de expiração: {e}")
+                return False
     
     async def create_ticket(
     self, 
